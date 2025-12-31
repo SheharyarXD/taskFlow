@@ -1,8 +1,12 @@
-import { useEffect, useState, useContext } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
 import api from "../services/api";
 import { AuthContext } from "../context/authContext";
 import ProjectCard from "../components/ProjectCard";
 import { useNavigate } from "react-router-dom";
+import { gsap } from "gsap";
+import { Chart, registerables } from "chart.js";
+
+Chart.register(...registerables);
 
 export default function Dashboard() {
   const { user, authLoading, logout } = useContext(AuthContext);
@@ -80,7 +84,6 @@ export default function Dashboard() {
     navigate("/login");
   };
 
-  /* ---------- UI ---------- */
   return (
     <div className="min-h-screen bg-slate-100">
       {/* NAVBAR */}
@@ -181,42 +184,96 @@ export default function Dashboard() {
           </>
         )}
 
-        {/* ---------- TASKS TAB (FAKE BUT CLEAN) ---------- */}
-        {activeTab === "tasks" && (
-  <div className="bg-white rounded-2xl shadow-2xl p-10 text-center relative overflow-hidden">
-    {/* Floating Gradient Shapes */}
-    <div className="absolute top-0 left-0 w-72 h-72 bg-indigo-300/30 rounded-full -translate-x-1/2 -translate-y-1/2 animate-blob"></div>
-    <div className="absolute bottom-0 right-0 w-72 h-72 bg-pink-300/30 rounded-full translate-x-1/2 translate-y-1/2 animate-blob animation-delay-2000"></div>
-
-    <h2 className="text-2xl md:text-3xl font-extrabold mb-3 text-indigo-600">
-      Tasks Overview
-    </h2>
-    <p className="text-slate-500 mb-6">
-      Track your team's productivity in real-time 🚀
-    </p>
-
-    {/* Stat Cards */}
-    <div className="grid md:grid-cols-3 gap-6 mb-8">
-      <StatCardAnimated title="To Do" value={42} color="bg-indigo-500" />
-      <StatCardAnimated title="In Progress" value={17} color="bg-yellow-500" />
-      <StatCardAnimated title="Completed" value={128} color="bg-green-500" />
-    </div>
-
-    {/* Chart Section */}
-    <div className="bg-gray-50 p-6 rounded-xl shadow-inner">
-      <h3 className="text-lg font-bold mb-4 text-indigo-600">Weekly Task Progress</h3>
-      <div className="h-64">
-        <canvas id="tasksChart"></canvas>
-      </div>
-    </div>
-  </div>
-)}
+        {/* ---------- TASKS TAB ---------- */}
+        {activeTab === "tasks" && <TasksTab />}
       </div>
     </div>
   );
 }
 
-/* ---------- Animated Stat Card ---------- */
+/* ---------- TASKS TAB COMPONENT ---------- */
+function TasksTab() {
+  const chartRef = useRef(null);
+
+  useEffect(() => {
+    // Initialize Chart.js
+    const ctx = chartRef.current.getContext("2d");
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        datasets: [
+          {
+            label: "To Do",
+            data: [12, 19, 7, 15, 9, 5, 10],
+            borderColor: "#6366F1",
+            backgroundColor: "rgba(99,102,241,0.2)",
+            tension: 0.4,
+          },
+          {
+            label: "In Progress",
+            data: [5, 8, 6, 10, 4, 7, 3],
+            borderColor: "#FACC15",
+            backgroundColor: "rgba(250,204,21,0.2)",
+            tension: 0.4,
+          },
+          {
+            label: "Completed",
+            data: [10, 15, 20, 25, 18, 30, 28],
+            borderColor: "#22C55E",
+            backgroundColor: "rgba(34,197,94,0.2)",
+            tension: 0.4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { position: "top" } },
+        scales: { y: { beginAtZero: true } },
+      },
+    });
+  }, []);
+
+  return (
+    <div className="bg-white rounded-2xl shadow-2xl p-10 text-center relative overflow-hidden">
+      {/* Floating Gradient Shapes */}
+      <div className="absolute top-0 left-0 w-72 h-72 bg-indigo-300/30 rounded-full -translate-x-1/2 -translate-y-1/2 animate-blob"></div>
+      <div className="absolute bottom-0 right-0 w-72 h-72 bg-pink-300/30 rounded-full translate-x-1/2 translate-y-1/2 animate-blob animation-delay-2000"></div>
+
+      <h2 className="text-2xl md:text-3xl font-extrabold mb-3 text-indigo-600">
+        Tasks Overview
+      </h2>
+      <p className="text-slate-500 mb-6">
+        Track your team's productivity in real-time 🚀
+      </p>
+
+      {/* Animated Stat Cards */}
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <StatCardAnimated title="To Do" value={42} color="bg-indigo-500" />
+        <StatCardAnimated title="In Progress" value={17} color="bg-yellow-500" />
+        <StatCardAnimated title="Completed" value={128} color="bg-green-500" />
+      </div>
+
+      {/* Chart */}
+      <div className="bg-gray-50 p-6 rounded-xl shadow-inner">
+        <h3 className="text-lg font-bold mb-4 text-indigo-600">Weekly Task Progress</h3>
+        <canvas ref={chartRef} className="h-64 w-full"></canvas>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- STAT CARD ---------- */
+function StatCard({ title, value }) {
+  return (
+    <div className="bg-white rounded-xl shadow p-6">
+      <p className="text-slate-500 text-sm">{title}</p>
+      <h3 className="text-3xl font-extrabold mt-2 text-indigo-600">{value}</h3>
+    </div>
+  );
+}
+
+/* ---------- ANIMATED STAT CARD ---------- */
 function StatCardAnimated({ title, value, color }) {
   const cardRef = useRef();
 
@@ -237,76 +294,6 @@ function StatCardAnimated({ title, value, color }) {
     >
       <p className="text-sm mb-2">{title}</p>
       <h3 className="text-3xl font-bold">{value}</h3>
-    </div>
-  );
-}
-
-/* ---------- GSAP Animations for Floating Shapes ---------- */
-<style>
-{`
-@keyframes blob {
-  0%, 100% { transform: translate(0,0) scale(1); }
-  33% { transform: translate(20px,-30px) scale(1.1); }
-  66% { transform: translate(-20px,20px) scale(0.9); }
-}
-.animate-blob { animation: blob 8s infinite; }
-.animation-delay-2000 { animation-delay: 2s; }
-`}
-</style>
-
-{/* ---------- ChartJS Script ---------- */}
-<script>
-{`
-import { Chart, registerables } from "chart.js";
-Chart.register(...registerables);
-
-const ctx = document.getElementById("tasksChart").getContext("2d");
-new Chart(ctx, {
-  type: "line",
-  data: {
-    labels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-    datasets: [
-      {
-        label: "To Do",
-        data: [12, 19, 7, 15, 9, 5, 10],
-        borderColor: "#6366F1",
-        backgroundColor: "rgba(99,102,241,0.2)",
-        tension: 0.4,
-      },
-      {
-        label: "In Progress",
-        data: [5, 8, 6, 10, 4, 7, 3],
-        borderColor: "#FACC15",
-        backgroundColor: "rgba(250,204,21,0.2)",
-        tension: 0.4,
-      },
-      {
-        label: "Completed",
-        data: [10, 15, 20, 25, 18, 30, 28],
-        borderColor: "#22C55E",
-        backgroundColor: "rgba(34,197,94,0.2)",
-        tension: 0.4,
-      },
-    ],
-  },
-  options: {
-    responsive: true,
-    plugins: { legend: { position: "top" } },
-    scales: { y: { beginAtZero: true } },
-  },
-});
-`}
-</script>
-
-
-/* ---------- STAT CARD ---------- */
-function StatCard({ title, value }) {
-  return (
-    <div className="bg-white rounded-xl shadow p-6">
-      <p className="text-slate-500 text-sm">{title}</p>
-      <h3 className="text-3xl font-extrabold mt-2 text-indigo-600">
-        {value}
-      </h3>
     </div>
   );
 }
