@@ -1,14 +1,13 @@
+const serverless = require("serverless-http");
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 require("dotenv").config();
 
-const authRoutes = require("./routes/authRoutes");
-const projectRoutes = require("./routes/projectRoutes");
-const taskRoutes = require("./routes/taskRoutes");
-const userRoutes = require("./routes/userRoutes");
-
-const serverless = require("serverless-http"); // <-- import serverless-http
+const authRoutes = require("../routes/authRoutes");
+const projectRoutes = require("../routes/projectRoutes");
+const taskRoutes = require("../routes/taskRoutes");
+const userRoutes = require("../routes/userRoutes");
 
 const app = express();
 
@@ -26,7 +25,7 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/users", userRoutes);
 
-// MongoDB connection caching for Vercel
+// MongoDB connection caching
 let cached = global.mongoose;
 if (!cached) cached = global.mongoose = { conn: null, promise: null };
 
@@ -42,9 +41,9 @@ async function connectDB() {
   return cached.conn;
 }
 
-// Export as serverless function
+// Wrap app with serverless-http
 module.exports = serverless(app, {
   async requestHandler(req, res) {
-    await connectDB(); // ensure DB is connected on every request
+    await connectDB();
   }
 });
