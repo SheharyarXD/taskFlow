@@ -12,15 +12,24 @@ const serverless = require("serverless-http");
 
 const app = express();
 
-app.use(cors());
+// Configure CORS properly
+app.use(cors({
+  origin: '*', // Allow all origins
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: false,
+  maxAge: 86400, // Cache preflight for 24 hours
+}));
+
 app.use(express.json());
 
 // Handle OPTIONS requests FIRST - before any DB connection
 app.use((req, res, next) => {
-  res.setHeader('Access-Control-Allow-Origin', '*'); 
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Max-Age', '86400'); // Cache preflight for 24 hours
+  // Set CORS headers on all responses
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.header('Access-Control-Max-Age', '86400');
   
   // Handle OPTIONS immediately - don't wait for DB
   if (req.method === 'OPTIONS') {
@@ -92,6 +101,8 @@ app.use(async (req, res, next) => {
     next();
   } catch (error) {
     console.error('Database connection error:', error);
+    // Ensure CORS headers are set even on errors
+    res.header('Access-Control-Allow-Origin', '*');
     res.status(500).json({ 
       message: 'Database connection failed',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
@@ -110,6 +121,19 @@ app.get("/api/health", (req, res) => {
     status: "ok", 
     timestamp: new Date().toISOString(),
     db: mongoose.connection.readyState === 1 ? "connected" : "disconnected"
+  });
+});
+
+// Global error handler to ensure CORS headers on all errors
+app.use((err, req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  console.error('Unhandled error:', err);
+  res.status(err.status || 500).json({
+    message: err.message || 'Internal server error',
+    error: process.env.NODE_ENV === 'development' ? err.stack : undefined
   });
 });
 
