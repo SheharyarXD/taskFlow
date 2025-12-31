@@ -8,7 +8,7 @@ const projectRoutes = require("./routes/projectRoutes");
 const taskRoutes = require("./routes/taskRoutes");
 const userRoutes = require("./routes/userRoutes");
 
-
+const serverless = require("serverless-http"); // <-- import serverless-http
 
 const app = express();
 
@@ -26,10 +26,25 @@ app.use("/api/projects", projectRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/users", userRoutes);
 
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("MongoDB Connected"))
-.catch(err => console.log(err));
+// MongoDB connection caching for Vercel
+let cached = global.mongoose;
+if (!cached) cached = global.mongoose = { conn: null, promise: null };
 
-// app.listen(5000, () => {
-//   console.log("Server running on port 5000");
-// });
+async function connectDB() {
+  if (cached.conn) return cached.conn;
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(process.env.MONGO_URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true
+    }).then(m => m);
+  }
+  cached.conn = await cached.promise;
+  return cached.conn;
+}
+
+// Export as serverless function
+module.exports = serverless(app, {
+  async requestHandler(req, res) {
+    await connectDB(); // ensure DB is connected on every request
+  }
+});
