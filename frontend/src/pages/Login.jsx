@@ -24,7 +24,7 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post("/auth/login", { email, password });
+      const res = await api.post("https://task-flow-alpha-pearl.vercel.app/api/auth/login", { email, password });
       login(res.data);
       navigate("/dashboard");
     } catch (err) {
